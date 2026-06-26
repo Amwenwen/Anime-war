@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Anime War — MOBA</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0010;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    #game-container canvas {
+      display: block;
+    }
+    /* Loading overlay */
+    #loading {
+      position: fixed; inset: 0;
+      background: linear-gradient(135deg, #0a0010, #1a0033);
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      z-index: 9999; color: white;
+    }
+    #loading h1 {
+      font-size: 3rem; font-weight: 900;
+      background: linear-gradient(90deg, #ff4400, #ff8c00, #ffd700);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      text-shadow: none; margin-bottom: 12px;
+      letter-spacing: 4px;
+    }
+    #loading p { color: #aaa; font-size: 1rem; }
+    #loading-bar-wrap {
+      width: 300px; height: 6px; background: #333;
+      border-radius: 3px; margin-top: 20px; overflow: hidden;
+    }
+    #loading-bar {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #ff4400, #ffd700);
+      border-radius: 3px;
+      animation: fill 2s forwards;
+    }
+    @keyframes fill { to { width: 100%; } }
+  </style>
+</head>
+<body>
+  <div id="loading">
+    <h1>⚔ ANIME WAR ⚔</h1>
+    <p>Loading battle arena...</p>
+    <div id="loading-bar-wrap">
+      <div id="loading-bar"></div>
+    </div>
+  </div>
+
+  <div id="game-container"></div>
+
+  <!-- Server URL config — edit env.js to set your deployed server URL -->
+  <script src="env.js"></script>
+  <!-- Phaser 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+  <!-- Socket.IO client — served by Cloud Function rewrite in prod, local server in dev -->
+  <script>
+    // Dynamically load socket.io client from the right source
+    (function() {
+      var s = document.createElement('script');
+      var isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      s.src = isLocal ? 'http://localhost:3000/socket.io/socket.io.js' : '/socket.io/socket.io.js';
+      s.onerror = function() {
+        // Fallback to CDN if function hasn't warmed up yet
+        var fb = document.createElement('script');
+        fb.src = 'https://cdn.socket.io/4.6.1/socket.io.min.js';
+        document.head.appendChild(fb);
+      };
+      document.head.appendChild(s);
+    })();
+  </script>
+  <!-- Game Scenes -->
+  <script src="src/utils/Constants.js"></script>
+  <script src="src/utils/NetworkManager.js"></script>
+  <script src="src/scenes/BootScene.js"></script>
+  <script src="src/scenes/LobbyScene.js"></script>
+  <script src="src/scenes/HeroSelectScene.js"></script>
+  <script src="src/scenes/BattleScene.js"></script>
+  <script src="src/scenes/HUDScene.js"></script>
+  <script src="src/scenes/ResultScene.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>
