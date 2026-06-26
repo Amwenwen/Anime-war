@@ -1,29 +1,29 @@
 /**
  * NetworkManager — Wraps Socket.IO for easy use across scenes
- * Automatically connects to Firebase Function in production,
- * or localhost in development.
  */
 class NetworkManager {
   constructor() {
     this.socket = null;
     this.listeners = {};
-    this.serverUrl = null;
   }
 
   connect() {
     const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
+    // In production, connect to Railway server URL from env.js
+    // In local dev, connect to localhost:3000
+    const serverUrl = isLocal
+      ? 'http://localhost:3000'
+      : (window.GAME_SERVER_URL || 'https://anime-war-e9872.up.railway.app');
+
     const opts = {
       transports: ['polling', 'websocket'],
-      path: '/socket.io',
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1500
+      reconnectionAttempts: 10,
+      reconnectionDelay: 2000,
+      timeout: 20000
     };
 
-    // Priority: env.js override → local dev → same origin
-    const serverUrl = window.GAME_SERVER_URL
-      || (isLocal ? 'http://localhost:3000' : '/');
-
+    console.log('[Network] Connecting to:', serverUrl);
     this.socket = io(serverUrl, opts);
 
     this.socket.on('connect', () => {

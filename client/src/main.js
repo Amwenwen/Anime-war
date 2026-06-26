@@ -2,7 +2,6 @@
  * Anime War — Phaser 3 Game Entry Point
  */
 
-// Hide loading screen once Phaser is ready
 window.addEventListener('load', () => {
   setTimeout(() => {
     const loading = document.getElementById('loading');
@@ -18,6 +17,9 @@ const config = {
   parent: 'game-container',
   pixelArt: false,
   antialias: true,
+  dom: {
+    createContainer: true   // needed for DOM input elements in BootScene
+  },
   scene: [BootScene, LobbyScene, HeroSelectScene, BattleScene, HUDScene, ResultScene],
   scale: {
     mode: Phaser.Scale.FIT,
@@ -27,5 +29,5 @@ const config = {
 
 const game = new Phaser.Game(config);
 
-// Connect to server
+// Connect to server after Phaser initialises
 network.connect();

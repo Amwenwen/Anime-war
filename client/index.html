@@ -62,22 +62,8 @@
   <script src="env.js"></script>
   <!-- Phaser 3 -->
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
-  <!-- Socket.IO client — served by Cloud Function rewrite in prod, local server in dev -->
-  <script>
-    // Dynamically load socket.io client from the right source
-    (function() {
-      var s = document.createElement('script');
-      var isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-      s.src = isLocal ? 'http://localhost:3000/socket.io/socket.io.js' : '/socket.io/socket.io.js';
-      s.onerror = function() {
-        // Fallback to CDN if function hasn't warmed up yet
-        var fb = document.createElement('script');
-        fb.src = 'https://cdn.socket.io/4.6.1/socket.io.min.js';
-        document.head.appendChild(fb);
-      };
-      document.head.appendChild(s);
-    })();
-  </script>
+  <!-- Socket.IO client — load from CDN directly, works everywhere -->
+  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
   <!-- Game Scenes -->
   <script src="src/utils/Constants.js"></script>
   <script src="src/utils/NetworkManager.js"></script>
