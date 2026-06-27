@@ -8,11 +8,11 @@ class NetworkManager {
   }
 
   connect() {
-    const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    // Only use localhost if running on port 3000 (npm start).
+    // Live Server (5500), Firebase Hosting, or any other host → use Railway.
+    const isLocalServer = location.hostname === 'localhost' && location.port === '3000';
 
-    // In production, connect to Railway server URL from env.js
-    // In local dev, connect to localhost:3000
-    const serverUrl = isLocal
+    const serverUrl = isLocalServer
       ? 'http://localhost:3000'
       : (window.GAME_SERVER_URL || 'https://anime-war-e9872.up.railway.app');
 
