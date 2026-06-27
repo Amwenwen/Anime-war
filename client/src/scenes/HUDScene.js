@@ -205,7 +205,7 @@ class HUDScene extends Phaser.Scene {
     // HP bar
     const pct = me.hp / me.maxHp;
     this._hpFill.width = 400 * pct;
-    this._hpFill.setFillColor(pct > 0.5 ? 0x44dd44 : pct > 0.25 ? 0xffaa00 : 0xff2200);
+    this._hpFill.setFillStyle(pct > 0.5 ? 0x44dd44 : pct > 0.25 ? 0xffaa00 : 0xff2200);
     this._hpText.setText(`${Math.round(me.hp)} / ${me.maxHp}`);
 
     // Skill cooldowns
