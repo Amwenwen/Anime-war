@@ -173,48 +173,62 @@ class BattleScene extends Phaser.Scene {
     const isMe = playerData.id === this._myId;
     const color = HERO_COLORS[playerData.heroId] || 0x888888;
     const teamColor = TEAM_COLORS[playerData.team];
+    const SIZE = 28; // hero draw radius
 
     const cont = this.add.container(playerData.x || 300, playerData.y || 400);
 
     // Shadow
-    const shadow = this.add.ellipse(0, 16, 40, 14, 0x000000, 0.4);
+    const shadow = this.add.ellipse(0, SIZE * 0.6, SIZE * 1.5, SIZE * 0.5, 0x000000, 0.35);
 
-    // Body circle
-    const body = this.add.circle(0, 0, 20, color, 1);
-    const border = this.add.circle(0, 0, 20, teamColor, 0);
-    border.setStrokeStyle(3, teamColor);
-
-    // "Me" glow ring
-    const glowRing = isMe ? this.add.circle(0, 0, 26, color, 0) : null;
-    if (glowRing) {
-      glowRing.setStrokeStyle(2, color, 0.5);
-      this.tweens.add({ targets: glowRing, scaleX: 1.3, scaleY: 1.3, alpha: 0, duration: 800, yoyo: true, repeat: -1 });
+    // "Me" selection ring (animated)
+    let glowRing = null;
+    if (isMe) {
+      glowRing = this.add.circle(0, 0, SIZE + 8, color, 0);
+      glowRing.setStrokeStyle(2, 0xffd700, 0.8);
+      this.tweens.add({ targets: glowRing, scaleX: 1.25, scaleY: 1.25, alpha: 0, duration: 900, yoyo: true, repeat: -1 });
     }
 
-    // Hero initial
-    const initial = this.add.text(0, 0, (playerData.heroId || '?')[0].toUpperCase(), {
-      fontSize: '16px', fontStyle: 'bold', fill: '#ffffff',
-      stroke: '#000000', strokeThickness: 3
+    // Detailed hero portrait via HeroDraw
+    const heroGraphic = this.add.graphics();
+    const drawer = HeroDraw.heroes[playerData.heroId] || HeroDraw.heroes.default;
+    drawer.draw(heroGraphic, 0, 0, SIZE, teamColor);
+
+    // Level badge (bottom-right of sprite)
+    const levelBadge = this.add.circle(SIZE * 0.7, SIZE * 0.7, 9, 0x000000, 0.85);
+    const levelText = this.add.text(SIZE * 0.7, SIZE * 0.7, '1', {
+      fontSize: '10px', fontStyle: 'bold', fill: '#ffd700'
     }).setOrigin(0.5);
 
     // Name tag
-    const nameTag = this.add.text(0, -34, playerData.name, {
+    const nameTag = this.add.text(0, -(SIZE + 16), playerData.name + (playerData.isBot ? ' 🤖' : ''), {
       fontSize: '11px', fill: isMe ? '#ffd700' : '#ffffff',
-      stroke: '#000000', strokeThickness: 3
+      stroke: '#000000', strokeThickness: 3,
+      backgroundColor: isMe ? '#00000088' : null,
+      padding: isMe ? { x: 4, y: 2 } : null
     }).setOrigin(0.5);
 
-    // HP bar
-    const hpBg = this.add.rectangle(0, 28, 44, 6, 0x440000).setOrigin(0.5);
-    const hpFill = this.add.rectangle(-22, 28, 44, 6, teamColor === TEAM_COLORS[1] ? 0x44aaff : 0xff4444).setOrigin(0, 0.5);
+    // HP bar background + fill
+    const hpBg = this.add.rectangle(0, SIZE + 10, SIZE * 1.8, 6, 0x220000, 0.9).setOrigin(0.5);
+    const hpFill = this.add.rectangle(-(SIZE * 0.9), SIZE + 10, SIZE * 1.8, 6,
+      playerData.team === 1 ? 0x44aaff : 0xff4444).setOrigin(0, 0.5);
 
-    const children = [shadow, body, border, initial, nameTag, hpBg, hpFill];
+    const children = [shadow];
     if (glowRing) children.push(glowRing);
+    children.push(heroGraphic, levelBadge, levelText, nameTag, hpBg, hpFill);
     cont.add(children);
 
     this._entityLayer.add(cont);
 
     this._playerSprites[playerData.id] = {
-      container: cont, body, initial, nameTag, hpFill, hpBg, color, teamColor
+      container: cont,
+      heroGraphic,
+      nameTag,
+      hpFill,
+      hpBg,
+      levelText,
+      color,
+      teamColor,
+      size: SIZE
     };
   }
 
@@ -341,8 +355,11 @@ class BattleScene extends Phaser.Scene {
 
         // HP bar update
         const pct = pData.hp / pData.maxHp;
-        sp.hpFill.width = 44 * pct;
-        sp.hpFill.x = -22;
+        sp.hpFill.width = sp.size * 1.8 * pct;
+        sp.hpFill.x = -(sp.size * 0.9);
+
+        // Level badge
+        if (sp.levelText) sp.levelText.setText(pData.level || 1);
       }
     }
 

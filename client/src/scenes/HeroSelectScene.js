@@ -88,16 +88,17 @@ class HeroSelectScene extends Phaser.Scene {
       const isSelected = this._selectedHero === hero.id;
 
       const card = this.add.graphics();
-      card.fillStyle(isSelected ? 0x331100 : 0x1a0033, 1);
+      card.fillStyle(isSelected ? 0x221100 : 0x0d0022, 1);
       card.fillRoundedRect(x, y, cardW, cardH, 8);
-      card.lineStyle(2, isSelected ? 0xffd700 : hero.color, isSelected ? 1 : 0.5);
+      card.fillStyle(isSelected ? 0x442200 : 0x1a0033, 0.6);
+      card.fillRoundedRect(x + 2, y + 2, cardW - 4, cardH * 0.55, 6);
+      card.lineStyle(isSelected ? 3 : 1.5, isSelected ? 0xffd700 : hero.color, isSelected ? 1 : 0.7);
       card.strokeRoundedRect(x, y, cardW, cardH, 8);
 
-      // Hero "portrait" as colored circle with initial
-      const circle = this.add.circle(x + cardW / 2, y + 38, 30, hero.color, 0.9);
-      const initial = this.add.text(x + cardW / 2, y + 38, hero.name[0], {
-        fontSize: '26px', fontStyle: 'bold', fill: '#ffffff'
-      }).setOrigin(0.5);
+      // Detailed hero portrait using HeroDraw
+      const portraitG = this.add.graphics();
+      const drawer = HeroDraw.heroes[hero.id] || HeroDraw.heroes.default;
+      drawer.draw(portraitG, x + cardW / 2, y + 40, 26, isSelected ? 0xffd700 : hero.color);
 
       // Role badge
       const roleColor = ROLE_COLORS[hero.role] || '#888888';
@@ -120,8 +121,10 @@ class HeroSelectScene extends Phaser.Scene {
 
       hitbox.on('pointerover', () => {
         card.clear();
-        card.fillStyle(0x2a0055, 1);
+        card.fillStyle(0x1a0044, 1);
         card.fillRoundedRect(x, y, cardW, cardH, 8);
+        card.fillStyle(hero.color, 0.1);
+        card.fillRoundedRect(x + 2, y + 2, cardW - 4, cardH * 0.55, 6);
         card.lineStyle(2, hero.color, 1);
         card.strokeRoundedRect(x, y, cardW, cardH, 8);
         this._showHeroInfo(hero);
@@ -129,9 +132,11 @@ class HeroSelectScene extends Phaser.Scene {
 
       hitbox.on('pointerout', () => {
         card.clear();
-        card.fillStyle(isSelected ? 0x331100 : 0x1a0033, 1);
+        card.fillStyle(isSelected ? 0x221100 : 0x0d0022, 1);
         card.fillRoundedRect(x, y, cardW, cardH, 8);
-        card.lineStyle(2, isSelected ? 0xffd700 : hero.color, isSelected ? 1 : 0.5);
+        card.fillStyle(isSelected ? 0x442200 : 0x1a0033, 0.6);
+        card.fillRoundedRect(x + 2, y + 2, cardW - 4, cardH * 0.55, 6);
+        card.lineStyle(isSelected ? 3 : 1.5, isSelected ? 0xffd700 : hero.color, isSelected ? 1 : 0.7);
         card.strokeRoundedRect(x, y, cardW, cardH, 8);
       });
 
@@ -142,57 +147,82 @@ class HeroSelectScene extends Phaser.Scene {
         this._showHeroInfo(hero);
       });
 
-      this._heroGridContainer.add([card, circle, initial, roleBadge, nameText, animeText, hitbox]);
+      this._heroGridContainer.add([card, portraitG, roleBadge, nameText, animeText, hitbox]);
     });
   }
 
   _showHeroInfo(hero) {
     if (this._infoBox) this._infoBox.destroy();
-    const x = 24, y = 440, w = 680, h = 240;
+    const x = 24, y = 436, w = 680, h = 248;
     const cont = this.add.container(0, 0);
 
+    // Background
     const bg = this.add.graphics();
-    bg.fillStyle(0x1a0033, 0.95);
+    bg.fillStyle(0x080018, 0.97);
     bg.fillRoundedRect(x, y, w, h, 10);
-    bg.lineStyle(1, hero.color, 0.7);
+    bg.lineStyle(2, hero.color, 0.9);
     bg.strokeRoundedRect(x, y, w, h, 10);
+    // Colored top bar
+    bg.fillStyle(hero.color, 0.15);
+    bg.fillRoundedRect(x + 2, y + 2, w - 4, 52, { tl: 9, tr: 9, bl: 0, br: 0 });
 
-    const nameT = this.add.text(x + 16, y + 14, `${hero.name}  [${hero.anime}]`, {
-      fontSize: '17px', fontStyle: 'bold', fill: '#ffd700'
+    // Large portrait on left
+    const portraitBg = this.add.graphics();
+    portraitBg.fillStyle(0x000000, 0.5);
+    portraitBg.fillCircle(x + 44, y + 44, 38);
+    const portraitG = this.add.graphics();
+    const drawer = HeroDraw.heroes[hero.id] || HeroDraw.heroes.default;
+    drawer.draw(portraitG, x + 44, y + 44, 34, hero.color);
+
+    // Name & anime
+    const nameT = this.add.text(x + 92, y + 10, hero.name, {
+      fontSize: '18px', fontStyle: 'bold', fill: '#ffd700'
+    });
+    const animeT = this.add.text(x + 92, y + 32, `[${hero.anime}]`, {
+      fontSize: '11px', fill: '#888888'
+    });
+    const roleT = this.add.text(x + 92, y + 50, hero.role.toUpperCase(), {
+      fontSize: '11px', fontStyle: 'bold',
+      fill: ROLE_COLORS[hero.role] || '#aaa',
+      backgroundColor: '#00000088', padding: { x: 6, y: 3 }
     });
 
-    const roleT = this.add.text(x + 16, y + 38, `Role: ${hero.role.toUpperCase()}`, {
-      fontSize: '13px', fill: ROLE_COLORS[hero.role] || '#aaa'
-    });
-
-    // Skills preview (first 2 regular + ult)
+    // Skills preview
     const skillsToShow = (hero.skills || []).slice(0, 4);
     skillsToShow.forEach((sk, i) => {
-      const sx = x + 16 + i * 165, sy = y + 66;
+      const sx = x + 16 + i * 163, sy = y + 72;
+      const isUlt = i === 3;
       const skillBg = this.add.graphics();
-      skillBg.fillStyle(0x110022, 1);
-      skillBg.fillRoundedRect(sx, sy, 158, 80, 6);
-      skillBg.lineStyle(1, i === 3 ? 0xffd700 : hero.color, 0.6);
-      skillBg.strokeRoundedRect(sx, sy, 158, 80, 6);
+      skillBg.fillStyle(isUlt ? 0x221100 : 0x0d0020, 1);
+      skillBg.fillRoundedRect(sx, sy, 156, 84, 6);
+      skillBg.lineStyle(isUlt ? 2 : 1, isUlt ? 0xffd700 : hero.color, isUlt ? 0.9 : 0.5);
+      skillBg.strokeRoundedRect(sx, sy, 156, 84, 6);
 
-      const label = i === 3 ? '⭐ ULT' : `S${i + 1}`;
-      const skLabel = this.add.text(sx + 6, sy + 6, `${label}: ${sk.name}`, {
-        fontSize: '11px', fontStyle: 'bold', fill: i === 3 ? '#ffd700' : '#dddddd',
-        wordWrap: { width: 145 }
+      // Key hint
+      const keyLabels = ['Q', 'W', 'E', 'R'];
+      const keyHint = this.add.text(sx + 6, sy + 6, keyLabels[i], {
+        fontSize: '10px', fontStyle: 'bold',
+        fill: isUlt ? '#ffd700' : '#aaaaaa',
+        backgroundColor: '#00000088', padding: { x: 4, y: 2 }
       });
 
-      const skDesc = this.add.text(sx + 6, sy + 30, sk.description, {
-        fontSize: '9px', fill: '#aaaaaa', wordWrap: { width: 145 }
+      const label = isUlt ? '⭐ ULTIMATE' : `Skill ${i + 1}`;
+      const skLabel = this.add.text(sx + 28, sy + 6, `${label}: ${sk.name}`, {
+        fontSize: '10px', fontStyle: 'bold',
+        fill: isUlt ? '#ffd700' : '#dddddd',
+        wordWrap: { width: 122 }
       });
-
-      const skCd = this.add.text(sx + 6, sy + 66, `CD: ${sk.cooldown}s`, {
+      const skDesc = this.add.text(sx + 6, sy + 32, sk.description, {
+        fontSize: '9px', fill: '#aaaaaa', wordWrap: { width: 144 }
+      });
+      const skCd = this.add.text(sx + 6, sy + 70, `⏱ CD: ${sk.cooldown}s`, {
         fontSize: '9px', fill: '#ff8c00'
       });
 
-      cont.add([skillBg, skLabel, skDesc, skCd]);
+      cont.add([skillBg, keyHint, skLabel, skDesc, skCd]);
     });
 
-    cont.add([bg, nameT, roleT]);
+    cont.add([bg, portraitBg, portraitG, nameT, animeT, roleT]);
     this._infoBox = cont;
   }
 
