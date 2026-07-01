@@ -466,25 +466,144 @@ class BattleScene extends Phaser.Scene {
   }
 
   _setupInput() {
-    this.input.keyboard.on('keydown-Q', () => this._useSkill(0));
-    this.input.keyboard.on('keydown-W', () => this._useSkill(1));
-    this.input.keyboard.on('keydown-E', () => this._useSkill(2));
-    this.input.keyboard.on('keydown-R', () => this._useSkill(3));
+    // ── Skills: 1 2 3 4 aimed at cursor ─────────────────────────────────────
+    this.input.keyboard.on('keydown-ONE',   () => this._useSkill(0));
+    this.input.keyboard.on('keydown-TWO',   () => this._useSkill(1));
+    this.input.keyboard.on('keydown-THREE', () => this._useSkill(2));
+    this.input.keyboard.on('keydown-FOUR',  () => this._useSkill(3));
+    // Battle spell: F (or D as fallback)
+    this.input.keyboard.on('keydown-F', () => this._useSpell());
     this.input.keyboard.on('keydown-D', () => this._useSpell());
+    // Pause
     this.input.keyboard.on('keydown-ESC', () => this._openMenu());
 
-    // WASD camera pan (when not following a character)
-    this._wasd = this.input.keyboard.addKeys('W,A,S,D');
+    // ── WASD movement keys ───────────────────────────────────────────────────
+    this._keys = this.input.keyboard.addKeys({
+      up:    Phaser.Input.Keyboard.KeyCodes.W,
+      down:  Phaser.Input.Keyboard.KeyCodes.S,
+      left:  Phaser.Input.Keyboard.KeyCodes.A,
+      right: Phaser.Input.Keyboard.KeyCodes.D
+    });
+
+    // Send movement to server at ~20Hz when a key is held
+    this._moveTimer = 0;
+    this._moveSendInterval = 50; // ms between network sends
+  }
+
+  // Called every frame by Phaser (add update() to scene lifecycle)
+  update(time, delta) {
+    this._handleWASD(delta);
+    this._updateCrosshair();
+  }
+
+  _handleWASD(delta) {
+    const keys = this._keys;
+    if (!keys) return;
+
+    const up    = keys.up.isDown;
+    const down  = keys.down.isDown;
+    const left  = keys.left.isDown;
+    const right = keys.right.isDown;
+
+    if (!up && !down && !left && !right) return;
+
+    // Accumulate time; only send every _moveSendInterval ms
+    this._moveTimer = (this._moveTimer || 0) + delta;
+    if (this._moveTimer < this._moveSendInterval) return;
+    this._moveTimer = 0;
+
+    // Get my current world position from last state
+    const mySprite = this._playerSprites[this._myId];
+    if (!mySprite || !mySprite.container) return;
+
+    const STEP = 160; // pixels per send — server moves hero toward this point
+    let dx = 0, dy = 0;
+    if (up)    dy -= 1;
+    if (down)  dy += 1;
+    if (left)  dx -= 1;
+    if (right) dx += 1;
+
+    // Normalize diagonal
+    if (dx !== 0 && dy !== 0) {
+      const inv = 1 / Math.sqrt(2);
+      dx *= inv; dy *= inv;
+    }
+
+    const cx = mySprite.container.x + dx * STEP;
+    const cy = mySprite.container.y + dy * STEP;
+
+    network.emit('game:move', {
+      roomId: this._initData.roomId,
+      x: Math.max(0, Math.min(this._mapW, cx)),
+      y: Math.max(0, Math.min(this._mapH, cy))
+    });
   }
 
   _setupClickMove() {
+    // Right-click still works as fallback move
     this.input.on('pointerdown', (pointer) => {
-      if (pointer.button !== 2) return; // Right click
+      if (pointer.button !== 2) return;
       const wx = pointer.worldX;
       const wy = pointer.worldY;
       network.emit('game:move', { roomId: this._initData.roomId, x: wx, y: wy });
       this._showMoveIndicator(wx, wy);
     });
+
+    // ── Crosshair cursor ────────────────────────────────────────────────────
+    this._crosshair = this.add.container(0, 0);
+    this._crosshair.setDepth(100);
+
+    const cg = this.add.graphics();
+    // Outer ring
+    cg.lineStyle(2, 0xffffff, 0.85);
+    cg.strokeCircle(0, 0, 12);
+    // Inner dot
+    cg.fillStyle(0xffffff, 0.9);
+    cg.fillCircle(0, 0, 2.5);
+    // Cross lines
+    cg.lineStyle(1.5, 0xffffff, 0.75);
+    cg.strokeLineShape(new Phaser.Geom.Line(-18, 0, -14, 0));
+    cg.strokeLineShape(new Phaser.Geom.Line( 14, 0,  18, 0));
+    cg.strokeLineShape(new Phaser.Geom.Line(0, -18, 0, -14));
+    cg.strokeLineShape(new Phaser.Geom.Line(0,  14, 0,  18));
+    this._crosshair.add(cg);
+    this._crosshairGraphic = cg;
+
+    // Hide default cursor while in game
+    this.input.setDefaultCursor('none');
+  }
+
+  _updateCrosshair() {
+    if (!this._crosshair) return;
+    const ptr = this.input.activePointer;
+    const wx = ptr.worldX;
+    const wy = ptr.worldY;
+    this._crosshair.setPosition(wx, wy);
+
+    // Pulse crosshair color based on nearest enemy (red = enemy nearby)
+    if (this._lastState) {
+      let nearEnemy = false;
+      for (const p of Object.values(this._lastState.players)) {
+        if (!p.alive || p.team === this._myTeam) continue;
+        const dx = p.x - wx, dy = p.y - wy;
+        if (Math.sqrt(dx*dx + dy*dy) < 80) { nearEnemy = true; break; }
+      }
+      if (nearEnemy !== this._crosshairOnEnemy) {
+        this._crosshairOnEnemy = nearEnemy;
+        this._crosshairGraphic.clear();
+        const col = nearEnemy ? 0xff4444 : 0xffffff;
+        const alpha = nearEnemy ? 1.0 : 0.85;
+        this._crosshairGraphic.lineStyle(2, col, alpha);
+        this._crosshairGraphic.strokeCircle(0, 0, nearEnemy ? 14 : 12);
+        this._crosshairGraphic.fillStyle(col, alpha);
+        this._crosshairGraphic.fillCircle(0, 0, 2.5);
+        this._crosshairGraphic.lineStyle(1.5, col, 0.75);
+        this._crosshairGraphic.strokeLineShape(new Phaser.Geom.Line(-18, 0, -14, 0));
+        this._crosshairGraphic.strokeLineShape(new Phaser.Geom.Line( 14, 0,  18, 0));
+        this._crosshairGraphic.strokeLineShape(new Phaser.Geom.Line(0, -18, 0, -14));
+        this._crosshairGraphic.strokeLineShape(new Phaser.Geom.Line(0,  14, 0,  18));
+      }
+    }
   }
 
   _showMoveIndicator(x, y) {
@@ -501,6 +620,10 @@ class BattleScene extends Phaser.Scene {
       targetX: ptr.worldX,
       targetY: ptr.worldY
     });
+    // Visual flash on crosshair
+    if (this._crosshairGraphic) {
+      this.tweens.add({ targets: this._crosshair, scaleX: 1.4, scaleY: 1.4, duration: 80, yoyo: true });
+    }
   }
 
   _useSpell() {
@@ -510,6 +633,9 @@ class BattleScene extends Phaser.Scene {
       targetX: ptr.worldX,
       targetY: ptr.worldY
     });
+    if (this._crosshairGraphic) {
+      this.tweens.add({ targets: this._crosshair, scaleX: 1.6, scaleY: 1.6, duration: 100, yoyo: true });
+    }
   }
 
   _openMenu() {

@@ -151,22 +151,22 @@ class HUDScene extends Phaser.Scene {
       fontSize: '8px', fill: '#aaaaaa'
     }).setOrigin(0.5);
 
-    // Skill slots Q W E
+    // Skill slots 1 2 3
     const skillsX = hpX + 20;
     this._skillSlots = [];
-    const keyLabels = ['Q', 'W', 'E'];
+    const keyLabels = ['1', '2', '3'];
     keyLabels.forEach((k, i) => {
       const sx = skillsX + i * (slotSize + gap);
       this._makeSkillSlot(sx, barY, slotSize, slotSize, k, `Skill ${i + 1}`, 0x1a3366, i, false);
     });
 
-    // Ultimate R
+    // Ultimate 4
     const ultX = skillsX + 3 * (slotSize + gap);
-    this._makeSkillSlot(ultX, barY - (ultSize - slotSize) / 2, ultSize, ultSize, 'R', 'Ultimate', 0x332200, 3, true);
+    this._makeSkillSlot(ultX, barY - (ultSize - slotSize) / 2, ultSize, ultSize, '4', 'Ultimate', 0x332200, 3, true);
 
-    // Spell D
+    // Spell F
     const spellX = ultX + ultSize + gap;
-    this._makeSkillSlot(spellX, barY, slotSize, slotSize, 'D', 'Spell', 0x1a3322, 4, false);
+    this._makeSkillSlot(spellX, barY, slotSize, slotSize, 'F', 'Spell', 0x1a3322, 4, false);
 
     // Stats panel
     const statsX = spellX + slotSize + 12;
