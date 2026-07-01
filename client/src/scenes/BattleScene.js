@@ -71,55 +71,206 @@ class BattleScene extends Phaser.Scene {
   _drawMap() {
     const g = this.add.graphics();
     const W = this._mapW, H = this._mapH;
+    const cx = W / 2, cy = H / 2;
 
-    // Ground fill
-    g.fillStyle(0x1a2a10, 1);
+    // ── Base ground ─────────────────────────────────────────────────────────
+    g.fillGradientStyle(0x1a3a1a, 0x1a3a1a, 0x0d2a0d, 0x0d2a0d, 1);
     g.fillRect(0, 0, W, H);
 
-    // Grass tile pattern
+    // Grass tile checker
     for (let tx = 0; tx < W; tx += TILE_SIZE) {
       for (let ty = 0; ty < H; ty += TILE_SIZE) {
-        const shade = ((tx + ty) / TILE_SIZE) % 2 === 0 ? 0x1d2e12 : 0x1a2a10;
+        const shade = ((tx / TILE_SIZE + ty / TILE_SIZE) % 2 === 0) ? 0x1e3e18 : 0x1a3a15;
         g.fillStyle(shade, 1);
         g.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
       }
     }
 
-    // Mid lane road
-    g.fillStyle(0x3a3020, 0.7);
-    g.fillRect(0, H * 0.48, W, 80);
+    // ── Stadium outer ring glow ──────────────────────────────────────────────
+    g.fillStyle(0x0a1e0a, 0.5);
+    g.fillRect(0, 0, W, H);
 
-    // Diagonal river
-    g.lineStyle(40, 0x0033aa, 0.5);
-    g.strokeLineShape(new Phaser.Geom.Line(0, H * 0.52, W, H * 0.48));
-
-    // Team 1 base area (top-left)
-    g.fillStyle(0x002244, 0.5);
-    g.fillCircle(200, 200, 200);
-    // Team 2 base area (bottom-right)
-    g.fillStyle(0x440000, 0.5);
-    g.fillCircle(W - 200, H - 200, 200);
-
-    // Forest patches
-    const forests = [
-      [600, 400, 80], [1000, 800, 70], [1400, 600, 90],
-      [800, 1400, 80], [1600, 1200, 70], [1200, 1600, 90]
+    // ── LANES — glowing purple/teal paths ───────────────────────────────────
+    // Mid lane (diagonal top-left to bottom-right)
+    g.fillStyle(0x7755aa, 0.18);
+    const midPts = [
+      { x: 0, y: 0 }, { x: 260, y: 0 }, { x: W - 220, y: H }, { x: 0, y: H }
     ];
-    forests.forEach(([fx, fy, fr]) => {
-      g.fillStyle(0x0d1a08, 0.8);
-      g.fillCircle(fx, fy, fr);
-      g.fillStyle(0x142208, 0.5);
-      g.fillCircle(fx - 20, fy - 20, fr * 0.6);
+    g.fillPoints(midPts, true);
+
+    // Top lane (along top edge)
+    g.fillStyle(0x44aacc, 0.14);
+    const topPts = [
+      { x: 0, y: 0 }, { x: W, y: 0 }, { x: W, y: 280 }, { x: 0, y: 280 }
+    ];
+    g.fillPoints(topPts, true);
+
+    // Bot lane (along bottom edge)
+    g.fillStyle(0x44aacc, 0.14);
+    const botPts = [
+      { x: 0, y: H - 280 }, { x: W, y: H - 280 }, { x: W, y: H }, { x: 0, y: H }
+    ];
+    g.fillPoints(botPts, true);
+
+    // Lane floor — actual road tiles
+    // Mid lane road strip
+    g.fillStyle(0x3a2e5a, 0.55);
+    for (let i = 0; i < 28; i++) {
+      g.fillRect(i * TILE_SIZE * 3, i * TILE_SIZE * 3 / (W / H) - 20, TILE_SIZE * 3 - 4, TILE_SIZE * 3 - 4);
+    }
+
+    // ── CENTRAL ARENA ZONE ──────────────────────────────────────────────────
+    // Outer glow ring
+    for (let r = 380; r >= 280; r -= 20) {
+      const alpha = (380 - r) / 100 * 0.12;
+      g.fillStyle(0xcc88ff, alpha);
+      g.fillCircle(cx, cy, r);
+    }
+    // Main arena floor
+    g.fillStyle(0x2a1a44, 0.85);
+    g.fillCircle(cx, cy, 280);
+    // Inner lighter circle
+    g.fillStyle(0x3a2255, 0.6);
+    g.fillCircle(cx, cy, 200);
+    // Center symbol rings
+    g.lineStyle(4, 0xcc66ff, 0.5);
+    g.strokeCircle(cx, cy, 280);
+    g.lineStyle(2, 0xaa44dd, 0.3);
+    g.strokeCircle(cx, cy, 200);
+    g.lineStyle(3, 0xff88ff, 0.35);
+    g.strokeCircle(cx, cy, 100);
+    // Center glowing dot
+    g.fillStyle(0xff88ff, 0.6);
+    g.fillCircle(cx, cy, 18);
+    g.fillStyle(0xffffff, 0.8);
+    g.fillCircle(cx, cy, 8);
+
+    // ── TEAM 1 BASE ZONE (top-left) ─────────────────────────────────────────
+    // Outer glow
+    for (let r = 320; r >= 200; r -= 25) {
+      const alpha = (320 - r) / 120 * 0.18;
+      g.fillStyle(0x4488ff, alpha);
+      g.fillCircle(200, 200, r);
+    }
+    g.fillStyle(0x001a44, 0.9);
+    g.fillCircle(200, 200, 200);
+    g.fillStyle(0x0033aa, 0.4);
+    g.fillCircle(200, 200, 150);
+    g.lineStyle(5, 0x4499ff, 0.8);
+    g.strokeCircle(200, 200, 200);
+    g.lineStyle(3, 0x88ccff, 0.5);
+    g.strokeCircle(200, 200, 140);
+    // Team 1 logo (star shape)
+    g.fillStyle(0x4499ff, 0.5);
+    for (let a = 0; a < 5; a++) {
+      const ang = (a * 72 - 90) * Math.PI / 180;
+      const ang2 = ((a + 0.5) * 72 - 90) * Math.PI / 180;
+      g.fillTriangle(
+        200 + Math.cos(ang) * 80, 200 + Math.sin(ang) * 80,
+        200 + Math.cos(ang2) * 38, 200 + Math.sin(ang2) * 38,
+        200, 200
+      );
+    }
+
+    // ── TEAM 2 BASE ZONE (bottom-right) ─────────────────────────────────────
+    for (let r = 320; r >= 200; r -= 25) {
+      const alpha = (320 - r) / 120 * 0.18;
+      g.fillStyle(0xff4444, alpha);
+      g.fillCircle(W - 200, H - 200, r);
+    }
+    g.fillStyle(0x440000, 0.9);
+    g.fillCircle(W - 200, H - 200, 200);
+    g.fillStyle(0xaa0000, 0.4);
+    g.fillCircle(W - 200, H - 200, 150);
+    g.lineStyle(5, 0xff4444, 0.8);
+    g.strokeCircle(W - 200, H - 200, 200);
+    g.lineStyle(3, 0xff8888, 0.5);
+    g.strokeCircle(W - 200, H - 200, 140);
+    // Team 2 logo
+    g.fillStyle(0xff4444, 0.5);
+    for (let a = 0; a < 5; a++) {
+      const ang = (a * 72 - 90) * Math.PI / 180;
+      const ang2 = ((a + 0.5) * 72 - 90) * Math.PI / 180;
+      g.fillTriangle(
+        (W - 200) + Math.cos(ang) * 80, (H - 200) + Math.sin(ang) * 80,
+        (W - 200) + Math.cos(ang2) * 38, (H - 200) + Math.sin(ang2) * 38,
+        W - 200, H - 200
+      );
+    }
+
+    // ── GOAL ZONES (Unite-style scoring circles) ─────────────────────────────
+    const goalZones = [
+      // Team 1 defends (Team 2 scores here)
+      { x: 400,     y: 600,     team: 2 },
+      { x: 600,     y: 400,     team: 2 },
+      // Team 2 defends (Team 1 scores here)
+      { x: W - 400, y: H - 600, team: 1 },
+      { x: W - 600, y: H - 400, team: 1 },
+    ];
+    goalZones.forEach(({ x, y, team }) => {
+      const col = team === 1 ? 0x4488ff : 0xff4444;
+      g.fillStyle(col, 0.12);
+      g.fillCircle(x, y, 90);
+      g.lineStyle(3, col, 0.6);
+      g.strokeCircle(x, y, 90);
+      g.lineStyle(2, col, 0.3);
+      g.strokeCircle(x, y, 60);
+      g.fillStyle(col, 0.35);
+      g.fillCircle(x, y, 14);
     });
 
-    // Grid lines
-    g.lineStyle(1, 0x000000, 0.1);
-    for (let x = 0; x <= W; x += TILE_SIZE) g.strokeLineShape(new Phaser.Geom.Line(x, 0, x, H));
-    for (let y = 0; y <= H; y += TILE_SIZE) g.strokeLineShape(new Phaser.Geom.Line(0, y, W, y));
+    // ── BUSH / JUNGLE PATCHES ────────────────────────────────────────────────
+    const bushes = [
+      [720,  480,  55], [900,  300,  48], [500,  900,  52],
+      [1680, 1920, 55], [1500, 2100, 48], [1900, 1500, 52],
+      [1100, 850,  45], [850,  1100, 45], [1350, 1150, 50],
+      [1050, 1250, 50],
+    ];
+    bushes.forEach(([bx, by, br]) => {
+      g.fillStyle(0x0a1a08, 0.75);
+      g.fillCircle(bx, by, br);
+      // Bush highlight
+      g.fillStyle(0x163010, 0.4);
+      g.fillCircle(bx - br * 0.25, by - br * 0.25, br * 0.55);
+      // Bush border
+      g.lineStyle(2, 0x224418, 0.5);
+      g.strokeCircle(bx, by, br);
+    });
 
-    // Map border
-    g.lineStyle(6, 0x333333, 1);
+    // ── CONNECTING PATHS between zones ─────────────────────────────────────
+    // Top lane path
+    g.fillStyle(0x2e2240, 0.45);
+    g.fillRect(80, 80, 120, 600);
+    g.fillRect(80, 80, 600, 120);
+    // Bottom lane path
+    g.fillRect(W - 200, H - 680, 120, 600);
+    g.fillRect(W - 680, H - 200, 600, 120);
+    // Mid lane path (diagonal strip)
+    g.fillStyle(0x2e2240, 0.35);
+    for (let i = 0; i < 34; i++) {
+      g.fillRect(i * 72 - 10, i * 72 - 10, 68, 68);
+    }
+
+    // ── LANE EDGE HIGHLIGHTS ─────────────────────────────────────────────────
+    g.lineStyle(2, 0x5544aa, 0.3);
+    g.strokeRect(80, 80, W - 160, H - 160);
+
+    // ── AMBIENT PARTICLES (static sparkle dots) ──────────────────────────────
+    const rng = (seed) => { let x = Math.sin(seed) * 10000; return x - Math.floor(x); };
+    for (let i = 0; i < 120; i++) {
+      const px = rng(i * 7.3) * W;
+      const py = rng(i * 11.9) * H;
+      const pr = rng(i * 3.7) * 2 + 0.5;
+      const pa = rng(i * 5.1) * 0.4 + 0.1;
+      g.fillStyle(0xaaaaff, pa);
+      g.fillCircle(px, py, pr);
+    }
+
+    // ── STADIUM OUTER BORDER ─────────────────────────────────────────────────
+    g.lineStyle(8, 0x221133, 1);
     g.strokeRect(0, 0, W, H);
+    g.lineStyle(3, 0x5533aa, 0.5);
+    g.strokeRect(40, 40, W - 80, H - 80);
   }
 
   _drawTowerMarkers() {
@@ -142,30 +293,74 @@ class BattleScene extends Phaser.Scene {
 
     towers.forEach(t => {
       const color = TEAM_COLORS[t.team];
-      const size = t.base ? 44 : 28;
-
+      const hexColor = t.team === 1 ? '#4499ff' : '#ff4444';
+      const size = t.base ? 52 : 32;
       const g = this.add.graphics();
-      g.fillStyle(color, 0.7);
-      g.fillRect(t.x - size / 2, t.y - size / 2, size, size);
-      g.lineStyle(3, 0xffffff, 0.4);
-      g.strokeRect(t.x - size / 2, t.y - size / 2, size, size);
 
       if (t.base) {
-        this.add.text(t.x, t.y - size / 2 - 12, t.team === 1 ? '🔵 NEXUS' : '🔴 NEXUS', {
-          fontSize: '11px', fill: '#ffffff', stroke: '#000000', strokeThickness: 3
+        // Glowing base nexus — concentric rings
+        for (let r = size + 28; r >= size; r -= 7) {
+          const alpha = (size + 28 - r) / 28 * 0.3;
+          g.fillStyle(color, alpha);
+          g.fillCircle(t.x, t.y, r);
+        }
+        g.fillStyle(t.team === 1 ? 0x001a44 : 0x330000, 0.9);
+        g.fillCircle(t.x, t.y, size);
+        g.lineStyle(4, color, 0.95);
+        g.strokeCircle(t.x, t.y, size);
+        g.lineStyle(2, 0xffffff, 0.4);
+        g.strokeCircle(t.x, t.y, size - 10);
+        // Inner glow
+        g.fillStyle(color, 0.4);
+        g.fillCircle(t.x, t.y, size - 16);
+        g.fillStyle(0xffffff, 0.6);
+        g.fillCircle(t.x, t.y, 8);
+
+        this.add.text(t.x, t.y - size - 16, t.team === 1 ? '🔵 NEXUS' : '🔴 NEXUS', {
+          fontSize: '13px', fontStyle: 'bold', fill: '#ffffff',
+          stroke: '#000000', strokeThickness: 4,
+          shadow: { offsetX: 0, offsetY: 2, color: hexColor, blur: 8, fill: true }
         }).setOrigin(0.5);
+
+      } else {
+        // Turret — octagonal tower design
+        const s = size;
+        // Outer glow
+        g.fillStyle(color, 0.2);
+        g.fillCircle(t.x, t.y, s + 10);
+        // Octagon body
+        g.fillStyle(t.team === 1 ? 0x112244 : 0x330011, 1);
+        const pts = [];
+        for (let a = 0; a < 8; a++) {
+          const angle = (a * 45 - 22.5) * Math.PI / 180;
+          pts.push({ x: t.x + Math.cos(angle) * s, y: t.y + Math.sin(angle) * s });
+        }
+        g.fillPoints(pts, true);
+        g.lineStyle(3, color, 0.9);
+        g.strokePoints(pts, true);
+        // Inner detail
+        g.fillStyle(color, 0.4);
+        g.fillCircle(t.x, t.y, s * 0.55);
+        g.fillStyle(0xffffff, 0.7);
+        g.fillCircle(t.x, t.y, s * 0.22);
+        // Cannon barrel
+        g.lineStyle(4, color, 0.8);
+        g.strokeLineShape(new Phaser.Geom.Line(t.x, t.y, t.x + (t.team === 1 ? s + 8 : -(s + 8)), t.y));
       }
 
-      // HP bar graphics (updated per state)
+      // HP bar (wider, cleaner)
+      const hpBarW = t.base ? 80 : 52;
+      const hpBarY = t.y + size + 8;
+
       const hpBg = this.add.graphics();
-      hpBg.fillStyle(0x330000, 1);
-      hpBg.fillRect(t.x - 20, t.y + size / 2 + 4, 40, 5);
+      hpBg.fillStyle(0x1a1a1a, 0.9);
+      hpBg.fillRoundedRect(t.x - hpBarW / 2, hpBarY, hpBarW, 7, 3);
 
       const hpFill = this.add.graphics();
-      hpFill.fillStyle(t.team === 1 ? 0x4488ff : 0xff4444, 1);
-      hpFill.fillRect(t.x - 20, t.y + size / 2 + 4, 40, 5);
+      hpFill.fillStyle(t.team === 1 ? 0x44aaff : 0xff5555, 1);
+      hpFill.fillRoundedRect(t.x - hpBarW / 2, hpBarY, hpBarW, 7, 3);
 
-      this._towerSprites[t.id] = { g, hpBg, hpFill, hpBarW: 40, x: t.x, y: t.y, size, team: t.team };
+      this._towerSprites[t.id] = { g, hpBg, hpFill, hpBarW, x: t.x, y: t.y, size, team: t.team };
     });
   }
 
@@ -173,48 +368,81 @@ class BattleScene extends Phaser.Scene {
     const isMe = playerData.id === this._myId;
     const color = HERO_COLORS[playerData.heroId] || 0x888888;
     const teamColor = TEAM_COLORS[playerData.team];
-    const SIZE = 28; // hero draw radius
+    const hexTeam = playerData.team === 1 ? '#4499ff' : '#ff5555';
+    const SIZE = 32; // slightly bigger
 
     const cont = this.add.container(playerData.x || 300, playerData.y || 400);
 
-    // Shadow
-    const shadow = this.add.ellipse(0, SIZE * 0.6, SIZE * 1.5, SIZE * 0.5, 0x000000, 0.35);
+    // Shadow ellipse under character
+    const shadow = this.add.ellipse(0, SIZE * 0.75, SIZE * 1.8, SIZE * 0.55, 0x000000, 0.4);
 
-    // "Me" selection ring (animated)
-    let glowRing = null;
+    // Selection / team glow ring (always visible)
+    const teamRing = this.add.circle(0, 0, SIZE + 6, teamColor, 0);
+    teamRing.setStrokeStyle(isMe ? 3 : 2, teamColor, isMe ? 1 : 0.65);
+
+    // "Me" pulse ring
+    let pulseRing = null;
     if (isMe) {
-      glowRing = this.add.circle(0, 0, SIZE + 8, color, 0);
-      glowRing.setStrokeStyle(2, 0xffd700, 0.8);
-      this.tweens.add({ targets: glowRing, scaleX: 1.25, scaleY: 1.25, alpha: 0, duration: 900, yoyo: true, repeat: -1 });
+      pulseRing = this.add.circle(0, 0, SIZE + 14, 0xffd700, 0);
+      pulseRing.setStrokeStyle(2, 0xffd700, 0.9);
+      this.tweens.add({ targets: pulseRing, scaleX: 1.35, scaleY: 1.35, alpha: 0, duration: 1100, yoyo: true, repeat: -1 });
     }
 
-    // Detailed hero portrait via HeroDraw
+    // Hero portrait
     const heroGraphic = this.add.graphics();
     const drawer = HeroDraw.heroes[playerData.heroId] || HeroDraw.heroes.default;
     drawer.draw(heroGraphic, 0, 0, SIZE, teamColor);
 
-    // Level badge (bottom-right of sprite)
-    const levelBadge = this.add.circle(SIZE * 0.7, SIZE * 0.7, 9, 0x000000, 0.85);
-    const levelText = this.add.text(SIZE * 0.7, SIZE * 0.7, '1', {
+    // Level badge
+    const levelBadge = this.add.graphics();
+    levelBadge.fillStyle(0x000000, 0.85);
+    levelBadge.fillRoundedRect(SIZE * 0.55, SIZE * 0.55, 20, 16, 4);
+    levelBadge.lineStyle(1.5, 0xffd700, 0.8);
+    levelBadge.strokeRoundedRect(SIZE * 0.55, SIZE * 0.55, 20, 16, 4);
+    const levelText = this.add.text(SIZE * 0.55 + 10, SIZE * 0.55 + 8, '1', {
       fontSize: '10px', fontStyle: 'bold', fill: '#ffd700'
     }).setOrigin(0.5);
 
-    // Name tag
-    const nameTag = this.add.text(0, -(SIZE + 16), playerData.name + (playerData.isBot ? ' 🤖' : ''), {
-      fontSize: '11px', fill: isMe ? '#ffd700' : '#ffffff',
-      stroke: '#000000', strokeThickness: 3,
-      backgroundColor: isMe ? '#00000088' : null,
-      padding: isMe ? { x: 4, y: 2 } : null
+    // ── HP bar (above head, Unite style) ──────────────────────────────────
+    const hpBarW = SIZE * 2.2;
+    const hpBarH = 7;
+    const hpBarY = -(SIZE + 30);
+
+    const hpBg = this.add.graphics();
+    hpBg.fillStyle(0x111111, 0.9);
+    hpBg.fillRoundedRect(-hpBarW / 2, hpBarY, hpBarW, hpBarH, 3);
+
+    const hpFill = this.add.graphics();
+    hpFill.fillStyle(playerData.team === 1 ? 0x44ddaa : 0xff5566, 1);
+    hpFill.fillRoundedRect(-hpBarW / 2, hpBarY, hpBarW, hpBarH, 3);
+
+    // HP bar outline
+    const hpBorder = this.add.graphics();
+    hpBorder.lineStyle(1.5, 0x000000, 0.7);
+    hpBorder.strokeRoundedRect(-hpBarW / 2, hpBarY, hpBarW, hpBarH, 3);
+
+    // ── Name tag (Unite style: team-colored pill) ──────────────────────────
+    const nameTagY = -(SIZE + 44);
+    const nameStr = playerData.name + (playerData.isBot ? ' 🤖' : '');
+    const nameBg = this.add.graphics();
+    const nameTextObj = this.add.text(0, nameTagY, nameStr, {
+      fontSize: isMe ? '13px' : '12px',
+      fontStyle: isMe ? 'bold' : 'normal',
+      fill: isMe ? '#ffd700' : '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 3
     }).setOrigin(0.5);
 
-    // HP bar background + fill
-    const hpBg = this.add.rectangle(0, SIZE + 10, SIZE * 1.8, 6, 0x220000, 0.9).setOrigin(0.5);
-    const hpFill = this.add.rectangle(-(SIZE * 0.9), SIZE + 10, SIZE * 1.8, 6,
-      playerData.team === 1 ? 0x44aaff : 0xff4444).setOrigin(0, 0.5);
+    // Pill background behind name
+    const nw = nameTextObj.width + 14, nh = 18;
+    nameBg.fillStyle(isMe ? 0x332200 : (playerData.team === 1 ? 0x001133 : 0x220011), 0.85);
+    nameBg.fillRoundedRect(-nw / 2, nameTagY - 9, nw, nh, 5);
+    nameBg.lineStyle(1.5, isMe ? 0xffd700 : teamColor, 0.7);
+    nameBg.strokeRoundedRect(-nw / 2, nameTagY - 9, nw, nh, 5);
 
-    const children = [shadow];
-    if (glowRing) children.push(glowRing);
-    children.push(heroGraphic, levelBadge, levelText, nameTag, hpBg, hpFill);
+    const children = [shadow, teamRing];
+    if (pulseRing) children.push(pulseRing);
+    children.push(heroGraphic, levelBadge, levelText, hpBg, hpFill, hpBorder, nameBg, nameTextObj);
     cont.add(children);
 
     this._entityLayer.add(cont);
@@ -222,13 +450,18 @@ class BattleScene extends Phaser.Scene {
     this._playerSprites[playerData.id] = {
       container: cont,
       heroGraphic,
-      nameTag,
+      nameTag: nameTextObj,
+      nameBg,
       hpFill,
       hpBg,
+      hpBorder,
       levelText,
+      levelBadge,
       color,
       teamColor,
-      size: SIZE
+      size: SIZE,
+      hpBarW,
+      hpBarY
     };
   }
 
@@ -353,10 +586,15 @@ class BattleScene extends Phaser.Scene {
         cont.x = pData.x;
         cont.y = pData.y;
 
-        // HP bar update
+        // HP bar update (graphics-based, above head)
         const pct = pData.hp / pData.maxHp;
-        sp.hpFill.width = sp.size * 1.8 * pct;
-        sp.hpFill.x = -(sp.size * 0.9);
+        const bw = sp.hpBarW || (sp.size * 2.2);
+        const by = sp.hpBarY || -(sp.size + 30);
+        sp.hpFill.clear();
+        const hpColor = pct > 0.5 ? (pData.team === 1 ? 0x44ddaa : 0xff5566) :
+                        pct > 0.25 ? 0xffaa00 : 0xff2200;
+        sp.hpFill.fillStyle(hpColor, 1);
+        sp.hpFill.fillRoundedRect(-bw / 2, by, bw * pct, 7, 3);
 
         // Level badge
         if (sp.levelText) sp.levelText.setText(pData.level || 1);
@@ -400,11 +638,13 @@ class BattleScene extends Phaser.Scene {
       if (!tData.alive) {
         ts.g.clear();
         ts.hpFill.clear();
+        ts.hpBg.clear();
       } else {
         const pct = tData.hp / tData.maxHp;
+        const hpBarY = ts.y + ts.size + 8;
         ts.hpFill.clear();
-        ts.hpFill.fillStyle(tData.team === 1 ? 0x4488ff : 0xff4444, 1);
-        ts.hpFill.fillRect(ts.x - 20, ts.y + ts.size / 2 + 4, ts.hpBarW * pct, 5);
+        ts.hpFill.fillStyle(tData.team === 1 ? 0x44aaff : 0xff5555, 1);
+        ts.hpFill.fillRoundedRect(ts.x - ts.hpBarW / 2, hpBarY, ts.hpBarW * pct, 7, 3);
       }
     }
 
